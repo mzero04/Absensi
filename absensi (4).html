@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Absen — Absensi Karyawan (Admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1B2D;
+    --navy:#14213D;
+    --navy-light:#22345A;
+    --bg:#F3F5F8;
+    --surface:#FFFFFF;
+    --border:#E2E7EE;
+    --teal:#0F766E;
+    --teal-dark:#0B5C55;
+    --teal-tint:#E6F4F2;
+    --amber:#B45309;
+    --amber-tint:#FDF3E7;
+    --red:#B91C1C;
+    --red-tint:#FBEAEA;
+    --green:#15803D;
+    --green-tint:#E9F7EE;
+    --muted:#64748B;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Plus Jakarta Sans', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink);}
+  .app{max-width:960px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  .topbar{
+    background:linear-gradient(135deg,var(--navy) 0%, var(--navy-light) 100%);
+    color:#fff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;
+    border-radius:0 0 18px 18px;
+  }
+  .brand{font-family:var(--sans);font-weight:800;font-size:20px;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px;}
+  .brand-mark{font-size:18px;}
+  .brand-accent{color:#5EEAD4;}
+  .header-right{display:flex;align-items:center;gap:12px;}
+  .live-clock{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:0.03em;background:rgba(255,255,255,0.08);padding:6px 14px;border-radius:8px;}
+  .sync-dot{width:9px;height:9px;border-radius:50%;background:#5EEAD4;flex-shrink:0;transition:background .2s;}
+  .sync-dot.offline{background:#F59E0B;}
+  .sync-dot.pending{background:#94A3B8;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .sync-label{font-size:11px;color:rgba(255,255,255,0.75);}
+
+  .tabs{display:flex;gap:4px;padding:14px 20px 0;}
+  .tab{
+    font-family:var(--sans);font-weight:600;font-size:14px;color:var(--muted);
+    background:none;border:none;padding:10px 16px;border-radius:10px 10px 0 0;cursor:pointer;
+    border-bottom:2px solid transparent;transition:all .15s;
+  }
+  .tab:hover{color:var(--navy);}
+  .tab.active{color:var(--teal-dark);border-bottom:2px solid var(--teal);background:var(--surface);}
+
+  main{flex:1;padding:0 20px 40px;}
+  .tab-panel{display:none;background:var(--surface);border-radius:0 12px 12px 12px;padding:28px;box-shadow:0 1px 3px rgba(15,27,45,0.06);min-height:340px;}
+  .tab-panel.active{display:block;}
+
+  select, input{
+    font-family:var(--sans);font-size:15px;padding:10px 14px;border-radius:8px;border:1px solid var(--border);
+    background:#fff;color:var(--ink);
+  }
+
+  .absen-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+  .absen-header .field-label{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px;}
+  .counter-pill{
+    font-family:var(--mono);font-weight:700;font-size:14px;background:var(--teal-tint);color:var(--teal-dark);
+    padding:8px 16px;border-radius:20px;
+  }
+  .quick-actions{display:flex;gap:8px;margin-bottom:14px;}
+  .link-btn{
+    background:none;border:none;color:var(--teal-dark);font-weight:600;font-size:13px;cursor:pointer;
+    padding:4px 0;text-decoration:underline;text-underline-offset:2px;
+  }
+  .checklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:520px;overflow-y:auto;}
+  .checklist-row{
+    display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:10px;border:1px solid transparent;
+    transition:background .12s;
+  }
+  .checklist-row:hover{background:var(--bg);}
+  .checklist-row.checked{background:var(--teal-tint);border-color:#CDEBE7;}
+  .checklist-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--teal);cursor:pointer;flex-shrink:0;}
+  .row-nik{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:110px;}
+  .row-name{font-weight:600;font-size:15px;flex:1;}
+  .status-tag{font-size:12px;font-weight:700;color:var(--muted);}
+  .checklist-row.checked .status-tag{color:var(--teal-dark);}
+  .save-bar{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+  .btn-primary{
+    font-family:var(--sans);font-weight:700;font-size:15px;padding:13px 26px;border-radius:12px;border:none;
+    cursor:pointer;color:#fff;background:var(--teal);box-shadow:0 4px 14px rgba(15,118,110,0.28);transition:transform .1s,opacity .15s;
+  }
+  .btn-primary:hover{background:var(--teal-dark);}
+  .btn-primary:active{transform:scale(0.97);}
+  .btn-primary:disabled{opacity:0.6;cursor:wait;}
+  .saved-note{font-size:13px;color:var(--muted);}
+  .empty-hint{color:var(--muted);font-size:14px;background:var(--teal-tint);padding:14px 18px;border-radius:10px;}
+
+  .controls-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center;}
+  .btn-secondary{
+    font-family:var(--sans);font-weight:600;font-size:14px;padding:9px 16px;border-radius:8px;
+    border:1px solid var(--teal);color:var(--teal-dark);background:var(--teal-tint);cursor:pointer;
+  }
+  .btn-secondary:hover{background:var(--teal);color:#fff;}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--border);}
+  tbody td{padding:10px;border-bottom:1px solid var(--border);font-family:var(--mono);}
+  tbody td.name-col{font-family:var(--sans);font-weight:600;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;font-family:var(--sans);}
+  .badge.hadir{background:var(--green-tint);color:var(--green);}
+  .badge.absen{background:var(--red-tint);color:var(--red);}
+  .badge.libur{background:#EEF1F5;color:var(--muted);}
+  .badge.belum{background:#EEF1F5;color:var(--muted);}
+
+  #addEmployeeForm{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+  #addEmployeeForm input{flex:1;min-width:140px;}
+  #addEmployeeForm button{background:var(--navy);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;}
+  #addEmployeeForm button:disabled{opacity:0.6;cursor:wait;}
+  #employeeList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;}
+  #employeeList li{display:flex;justify-content:space-between;align-items:center;background:var(--bg);padding:10px 14px;border-radius:8px;}
+  #employeeList .emp-meta{display:flex;gap:14px;align-items:baseline;}
+  #employeeList .emp-nik{font-family:var(--mono);font-size:12px;color:var(--muted);}
+  #employeeList button{background:none;border:none;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;}
+  #employeeListNonaktif li{display:flex;justify-content:space-between;align-items:center;background:var(--amber-tint);padding:10px 14px;border-radius:8px;gap:10px;flex-wrap:wrap;}
+  #employeeListNonaktif .emp-meta{display:flex;flex-direction:column;gap:2px;}
+  #employeeListNonaktif .emp-meta > span:first-child{display:flex;gap:12px;}
+  .btn-reactivate{background:none;border:1px solid var(--teal);color:var(--teal-dark);font-size:12px;font-weight:700;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;}
+  .btn-reactivate:hover{background:var(--teal);color:#fff;}
+  .btn-reactivate:disabled{opacity:0.6;cursor:wait;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;
+    padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;
+    transition:opacity .25s, transform .25s;z-index:50;max-width:90%;text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  @media(max-width:520px){
+    .topbar{padding:16px;border-radius:0 0 14px 14px;}
+    .brand{font-size:17px;}
+    .live-clock{font-size:14px;padding:5px 10px;}
+    .tab-panel{padding:16px;border-radius:0 10px 10px 10px;}
+    .tabs{padding:10px 12px 0;}
+    .tab{padding:8px 10px;font-size:13px;}
+    table{font-size:12px;}
+    .row-nik{min-width:78px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">⏱</span>Absen<span class="brand-accent">.</span></div>
+    <div class="header-right">
+      <span class="sync-dot pending" id="syncDot"></span>
+      <span class="sync-label" id="syncLabel">Menghubungkan…</span>
+      <div class="live-clock" id="liveClock">00:00:00</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="absen">Absen Harian</button>
+    <button class="tab" data-tab="riwayat">Riwayat</button>
+    <button class="tab" data-tab="laporan">Laporan</button>
+    <button class="tab" data-tab="karyawan">Karyawan</button>
+  </nav>
+
+  <main>
+    <section class="tab-panel active" id="tab-absen">
+      <div class="absen-header">
+        <div>
+          <span class="field-label">Tanggal</span>
+          <input type="date" id="absenDate">
+        </div>
+        <div class="counter-pill" id="counterPill">0 / 0 hadir</div>
+      </div>
+      <div class="quick-actions">
+        <button class="link-btn" id="btnCheckAll">Centang semua</button>
+        <button class="link-btn" id="btnUncheckAll">Kosongkan semua</button>
+      </div>
+      <ul class="checklist" id="checklist"></ul>
+      <div class="save-bar">
+        <span class="saved-note" id="savedNote"></span>
+        <button class="btn-primary" id="btnSaveAbsen">Simpan Absensi</button>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-riwayat">
+      <div class="controls-row">
+        <select id="riwayatEmployee"></select>
+        <input type="month" id="riwayatMonth">
+      </div>
+      <div id="riwayatTableWrap"></div>
+    </section>
+
+    <section class="tab-panel" id="tab-laporan">
+      <div class="controls-row">
+        <input type="month" id="laporanMonth">
+        <button class="btn-secondary" id="btnCopyCsv">Salin sebagai CSV</button>
+      </div>
+      <div id="laporanTableWrap"></div>
+    </section>
+
+    <section class="tab-panel" id="tab-karyawan">
+      <form id="addEmployeeForm">
+        <input id="newEmployeeNik" placeholder="NIK" required>
+        <input id="newEmployeeName" placeholder="Nama karyawan" required>
+        <button type="submit" id="btnAddEmployee">Tambah</button>
+      </form>
+      <ul id="employeeList"></ul>
+
+      <div id="nonaktifSection" style="display:none;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+        <div class="field-label" style="margin-bottom:10px;">Karyawan Nonaktif (akan terhapus otomatis setelah 30 hari)</div>
+        <ul id="employeeListNonaktif" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ KONEKSI KE GOOGLE SHEETS ============
+const API_URL = "https://script.google.com/macros/s/AKfycbycqEMAq4JQOtPz4wviyjbcx7uQnoHpvEQOSqs-HUC1DeQbB3I3qlDAkuikHNdLd9xD/exec";
+
+let employees = [];       // [{nik, name}]
+let attendanceCache = {}; // { "yyyy-mm-dd": { nik: true/false } }
+
+// ---------- fetch helper dengan timeout supaya tidak pernah macet selamanya ----------
+// PENTING: semua operasi (baca & TULIS) sengaja memakai GET dengan parameter di URL.
+// Google Apps Script kadang membelokkan permintaan POST menjadi GET saat redirect,
+// yang membuat data yang "dikirim" via POST tidak pernah benar-benar tersimpan.
+// Memakai GET dari awal menghindari masalah itu sepenuhnya.
+async function fetchJson(url, timeoutMs){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), timeoutMs || 15000);
+  try{
+    const res = await fetch(url, { method: "GET", signal: controller.signal });
+    clearTimeout(timer);
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(data && data.error) throw new Error(data.error);
+    return data;
+  }catch(e){
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+function setSyncStatus(state){ // 'ok' | 'error' | 'pending'
+  const dot = document.getElementById("syncDot");
+  const label = document.getElementById("syncLabel");
+  dot.classList.remove("offline", "pending");
+  if(state === "ok"){ label.textContent = "Tersambung ke Google Sheets"; }
+  else if(state === "pending"){ dot.classList.add("pending"); label.textContent = "Menghubungkan…"; }
+  else { dot.classList.add("offline"); label.textContent = "Gagal terhubung"; }
+}
+
+async function apiCall(params){
+  setSyncStatus("pending");
+  try{
+    const qs = new URLSearchParams(params).toString();
+    const data = await fetchJson(API_URL + "?" + qs);
+    employees = data.employees || [];
+    attendanceCache = data.attendance || {};
+    setSyncStatus("ok");
+    return true;
+  }catch(e){
+    console.error("Gagal menghubungi Google Sheets:", e);
+    setSyncStatus("error");
+    return false;
+  }
+}
+
+async function apiGet(){ return apiCall({ action: "getAll" }); }
+
+// ---------- date helpers ----------
+function pad(n){ return n.toString().padStart(2,"0"); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function daysInMonth(ym){ const [y,m]=ym.split("-").map(Number); return new Date(y,m,0).getDate(); }
+function isWeekend(y,m,day){ const d=new Date(y,m-1,day); return d.getDay()===0 || d.getDay()===6; }
+
+// ---------- toast ----------
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),2800);
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+// ---------- init ----------
+async function init(){
+  document.getElementById("absenDate").value = todayStr();
+  const now = new Date();
+  document.getElementById("riwayatMonth").value = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+  document.getElementById("laporanMonth").value = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+
+  const ok = await apiGet();
+  if(!ok) showToast("Tidak bisa terhubung ke Google Sheets. Periksa koneksi internet Anda.");
+  refreshAllViews();
+
+  tickClock();
+  setInterval(tickClock, 1000);
+}
+
+function refreshAllViews(){
+  renderEmployeeList();
+  renderRiwayatEmployeeSelect();
+  renderAbsenChecklist();
+  renderRiwayat();
+  renderLaporan();
+}
+
+function tickClock(){
+  const d=new Date();
+  document.getElementById("liveClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// ---------- tabs (mengambil data terbaru tiap pindah tab, karena admin lain mungkin sudah mengubah data) ----------
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click", async ()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+    const ok = await apiGet();
+    if(!ok) showToast("Gagal memuat data terbaru. Menampilkan data sebelumnya.");
+    refreshAllViews();
+  });
+});
+
+// ---------- Absen Harian (checklist) ----------
+function renderAbsenChecklist(){
+  const dateStr = document.getElementById("absenDate").value;
+  const list = document.getElementById("checklist");
+  const note = document.getElementById("savedNote");
+  const activeEmployees = employees.filter(e=>e.status !== "Nonaktif");
+
+  if(!activeEmployees.length){
+    list.innerHTML = `<li class="empty-hint" style="list-style:none;">Belum ada karyawan aktif. Tambahkan dulu di tab <strong>Karyawan</strong>.</li>`;
+    updateCounter();
+    note.textContent = "";
+    return;
+  }
+
+  const state = attendanceCache[dateStr] || null;
+
+  list.innerHTML = activeEmployees.map(emp=>{
+    const checked = !!(state && state[emp.nik]);
+    return `<li class="checklist-row ${checked?'checked':''}" data-nik="${escapeHtml(emp.nik)}">
+      <input type="checkbox" ${checked?'checked':''}>
+      <span class="row-nik">${escapeHtml(emp.nik)}</span>
+      <span class="row-name">${escapeHtml(emp.name)}</span>
+      <span class="status-tag">${checked?'Hadir':'—'}</span>
+    </li>`;
+  }).join("");
+
+  list.querySelectorAll(".checklist-row").forEach(row=>{
+    const checkbox = row.querySelector("input");
+    checkbox.addEventListener("change", ()=>{
+      row.classList.toggle("checked", checkbox.checked);
+      row.querySelector(".status-tag").textContent = checkbox.checked ? "Hadir" : "—";
+      updateCounter();
+    });
+  });
+
+  updateCounter();
+  note.textContent = state ? "Absensi tanggal ini sudah pernah disimpan." : "Absensi tanggal ini belum diisi.";
+}
+
+function updateCounter(){
+  const rows = document.querySelectorAll("#checklist .checklist-row");
+  const total = rows.length;
+  const checked = document.querySelectorAll("#checklist .checklist-row.checked").length;
+  document.getElementById("counterPill").textContent = `${checked} / ${total} hadir`;
+}
+
+document.getElementById("absenDate").addEventListener("change", async ()=>{
+  const ok = await apiGet();
+  if(!ok) showToast("Gagal memuat data terbaru.");
+  renderAbsenChecklist();
+});
+
+document.getElementById("btnCheckAll").addEventListener("click", ()=>{
+  document.querySelectorAll("#checklist .checklist-row").forEach(row=>{
+    row.classList.add("checked");
+    row.querySelector("input").checked = true;
+    row.querySelector(".status-tag").textContent = "Hadir";
+  });
+  updateCounter();
+});
+document.getElementById("btnUncheckAll").addEventListener("click", ()=>{
+  document.querySelectorAll("#checklist .checklist-row").forEach(row=>{
+    row.classList.remove("checked");
+    row.querySelector("input").checked = false;
+    row.querySelector(".status-tag").textContent = "—";
+  });
+  updateCounter();
+});
+
+document.getElementById("btnSaveAbsen").addEventListener("click", async ()=>{
+  const dateStr = document.getElementById("absenDate").value;
+  const rowsEl = document.querySelectorAll("#checklist .checklist-row");
+  if(!rowsEl.length) return;
+  const btn = document.getElementById("btnSaveAbsen");
+  const records = {};
+  rowsEl.forEach(row=>{
+    records[row.dataset.nik] = row.querySelector("input").checked;
+  });
+
+  btn.disabled = true; btn.textContent = "Menyimpan…";
+  const ok = await apiCall({ action: "saveAttendance", date: dateStr, records: JSON.stringify(records) });
+  btn.disabled = false; btn.textContent = "Simpan Absensi";
+
+  if(ok){
+    showToast(`Absensi ${dateStr} berhasil disimpan ke Google Sheets.`);
+    document.getElementById("savedNote").textContent = "Absensi tanggal ini sudah pernah disimpan.";
+  } else {
+    showToast("Gagal menyimpan absensi. Periksa koneksi internet lalu coba lagi.");
+  }
+  renderAbsenChecklist();
+  renderRiwayat();
+  renderLaporan();
+});
+
+// ---------- Riwayat tab ----------
+function renderRiwayatEmployeeSelect(){
+  const sel = document.getElementById("riwayatEmployee");
+  const prev = sel.value;
+  sel.innerHTML = employees.length
+    ? employees.map(e=>`<option value="${escapeHtml(e.nik)}">${escapeHtml(e.name)} (${escapeHtml(e.nik)})${e.status==='Nonaktif' ? ' — Nonaktif' : ''}</option>`).join("")
+    : `<option value="">Belum ada karyawan</option>`;
+  if(employees.some(e=>e.nik===prev)) sel.value = prev;
+}
+
+document.getElementById("riwayatEmployee").addEventListener("change", renderRiwayat);
+document.getElementById("riwayatMonth").addEventListener("change", renderRiwayat);
+document.getElementById("laporanMonth").addEventListener("change", renderLaporan);
+
+function renderRiwayat(){
+  const nik = document.getElementById("riwayatEmployee").value;
+  const ym = document.getElementById("riwayatMonth").value;
+  const wrap = document.getElementById("riwayatTableWrap");
+  if(!nik || !ym){ wrap.innerHTML = `<p class="empty-hint">Pilih karyawan dan bulan untuk melihat riwayat.</p>`; return; }
+
+  const [y,m] = ym.split("-").map(Number);
+  const nDays = daysInMonth(ym);
+
+  let rows = "";
+  for(let d=1; d<=nDays; d++){
+    const dateStr = `${y}-${pad(m)}-${pad(d)}`;
+    let badge;
+    if(isWeekend(y,m,d)){
+      badge = `<span class="badge libur">Libur</span>`;
+    } else {
+      const dr = attendanceCache[dateStr];
+      if(!dr) badge = `<span class="badge belum">Belum diisi</span>`;
+      else badge = dr[nik] ? `<span class="badge hadir">Hadir</span>` : `<span class="badge absen">Tidak Hadir</span>`;
+    }
+    rows += `<tr><td class="name-col">${dateStr}</td><td>${badge}</td></tr>`;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Tanggal</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ---------- Laporan tab ----------
+function renderLaporan(){
+  const ym = document.getElementById("laporanMonth").value;
+  const wrap = document.getElementById("laporanTableWrap");
+  if(!ym){ wrap.innerHTML = `<p class="empty-hint">Pilih bulan untuk melihat rekap.</p>`; return; }
+  if(!employees.length){ wrap.innerHTML = `<p class="empty-hint">Belum ada karyawan terdaftar.</p>`; return; }
+
+  const [y,m] = ym.split("-").map(Number);
+  const nDays = daysInMonth(ym);
+
+  const workDates = [];
+  for(let d=1; d<=nDays; d++){ if(!isWeekend(y,m,d)) workDates.push(`${y}-${pad(m)}-${pad(d)}`); }
+
+  let rows = "";
+  let csvLines = ["NIK,Nama,Status,Hadir,Tidak Hadir,Belum Diisi"];
+
+  for(const emp of employees){
+    let hadir=0, tidakHadir=0, belum=0;
+    workDates.forEach(dateStr=>{
+      const dr = attendanceCache[dateStr];
+      if(!dr) belum++;
+      else if(dr[emp.nik]) hadir++;
+      else tidakHadir++;
+    });
+    const statusLabel = emp.status === "Nonaktif" ? `Nonaktif` : "Aktif";
+    rows += `<tr>
+      <td>${escapeHtml(emp.nik)}</td>
+      <td class="name-col">${escapeHtml(emp.name)}</td>
+      <td>${statusLabel}</td>
+      <td>${hadir}</td>
+      <td>${tidakHadir}</td>
+      <td>${belum}</td>
+    </tr>`;
+    csvLines.push(`${emp.nik},${emp.name},${statusLabel},${hadir},${tidakHadir},${belum}`);
+  }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>NIK</th><th>Nama</th><th>Status</th><th>Hadir</th><th>Tidak Hadir</th><th>Belum Diisi</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  wrap.dataset.csv = csvLines.join("\n");
+}
+
+document.getElementById("btnCopyCsv").addEventListener("click", async ()=>{
+  const csv = document.getElementById("laporanTableWrap").dataset.csv || "";
+  if(!csv){ showToast("Tidak ada data untuk disalin."); return; }
+  try{
+    await navigator.clipboard.writeText(csv);
+    showToast("Rekap disalin sebagai CSV — tempel ke Excel/Sheets.");
+  }catch(e){
+    showToast("Gagal menyalin otomatis. Salin manual dari tabel.");
+  }
+});
+
+// ---------- Karyawan tab ----------
+function renderEmployeeList(){
+  const list = document.getElementById("employeeList");
+  const nonaktifWrap = document.getElementById("employeeListNonaktif");
+  const nonaktifSection = document.getElementById("nonaktifSection");
+
+  const aktif = employees.filter(e=>e.status !== "Nonaktif");
+  const nonaktif = employees.filter(e=>e.status === "Nonaktif");
+
+  if(!aktif.length){
+    list.innerHTML = `<li style="justify-content:center;color:var(--muted);">Belum ada karyawan aktif. Tambahkan di atas.</li>`;
+  } else {
+    list.innerHTML = aktif.map(e=>`
+      <li>
+        <span class="emp-meta"><span class="emp-nik">${escapeHtml(e.nik)}</span><span>${escapeHtml(e.name)}</span></span>
+        <button data-nik="${escapeHtml(e.nik)}" class="btn-remove">Hapus</button>
+      </li>
+    `).join("");
+    list.querySelectorAll(".btn-remove").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const nik = btn.dataset.nik;
+        const emp = employees.find(e=>e.nik===nik);
+        if(!confirm(`Hapus ${emp?.name} dari daftar aktif?\n\nData tidak langsung hilang — akan disimpan selama 30 hari dan bisa diaktifkan kembali, baru setelah itu terhapus permanen otomatis.`)) return;
+        btn.textContent = "Menghapus…"; btn.disabled = true;
+        const ok = await apiCall({ action: "deleteEmployee", nik: nik });
+        if(ok) showToast("Karyawan dinonaktifkan. Data disimpan selama 30 hari.");
+        else showToast("Gagal menghapus. Periksa koneksi internet.");
+        refreshAllViews();
+      });
+    });
+  }
+
+  if(!nonaktif.length){
+    nonaktifSection.style.display = "none";
+    nonaktifWrap.innerHTML = "";
+  } else {
+    nonaktifSection.style.display = "block";
+    nonaktifWrap.innerHTML = nonaktif.map(e=>`
+      <li>
+        <span class="emp-meta">
+          <span><span class="emp-nik">${escapeHtml(e.nik)}</span> &nbsp; <strong>${escapeHtml(e.name)}</strong></span>
+          <span style="font-size:12px;color:var(--muted);">Nonaktif sejak ${escapeHtml(e.tanggalNonaktif)} — terhapus permanen dalam ${e.sisaHari} hari</span>
+        </span>
+        <button data-nik="${escapeHtml(e.nik)}" class="btn-reactivate">Aktifkan Kembali</button>
+      </li>
+    `).join("");
+    nonaktifWrap.querySelectorAll(".btn-reactivate").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const nik = btn.dataset.nik;
+        btn.textContent = "Memproses…"; btn.disabled = true;
+        const ok = await apiCall({ action: "reactivateEmployee", nik: nik });
+        if(ok) showToast("Karyawan diaktifkan kembali.");
+        else showToast("Gagal memproses. Periksa koneksi internet.");
+        refreshAllViews();
+      });
+    });
+  }
+}
+
+document.getElementById("addEmployeeForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const nikInput = document.getElementById("newEmployeeNik");
+  const nameInput = document.getElementById("newEmployeeName");
+  const addBtn = document.getElementById("btnAddEmployee");
+  const nik = nikInput.value.trim();
+  const name = nameInput.value.trim();
+  if(!nik || !name){ showToast("Isi NIK dan Nama terlebih dahulu."); return; }
+  if(employees.some(emp=>emp.nik === nik)){
+    showToast("NIK sudah terdaftar untuk karyawan lain.");
+    return;
+  }
+
+  addBtn.disabled = true; addBtn.textContent = "Menyimpan…";
+  const ok = await apiCall({ action: "addEmployee", nik: nik, name: name });
+  addBtn.disabled = false; addBtn.textContent = "Tambah";
+
+  if(ok){
+    nikInput.value = ""; nameInput.value = "";
+    showToast(`${name} ditambahkan sebagai karyawan.`);
+  } else {
+    showToast("Gagal menambahkan. Periksa koneksi internet lalu coba lagi.");
+  }
+  refreshAllViews();
+});
+
+init();
+</script>
+</body>
+</html>
